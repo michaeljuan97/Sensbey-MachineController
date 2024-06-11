@@ -1,79 +1,194 @@
-//Source 
-// http://www.learnerswings.com/2014/04/control-seven-segment-display-using.html
-//Pin connected to ST_CP of 74HC595
-int latchPin = 12;
-//Pin connected to SH_CP of 74HC595
-int clockPin = 13;
-////Pin connected to DS of 74HC595
-int dataPin = 11;
+#include <ShiftRegister74HC595.h>
+
+// What works?
+// Setting timer bisa. Naik turun bisa.
+// Save ke variable timer bisa.
+
+// Running mode masih belum work. Tweek this
+// Belum show timer di seven segment
+
+// - Show timer di seven segment
+// - Masuk ke setup mode. Done.
+// - Control timer updown. Done
+// - Exit setup. Done.
+// - Masuk running mode
+// - Exit running mode
+
+// Pin definitions
+const int dataPin = 2;   // DS pin of 74HC595
+const int clockPin = 3;  // SHCP pin of 74HC595
+const int latchPin = 4;  // STCP pin of 74HC595
+
+const int setButtonPin = 5;   // Set button
+const int upButtonPin = 6;    // Up button
+const int downButtonPin = 7;  // Down button
+const int runButtonPin = 8; // running button
+
+// Create shift register object
+ShiftRegister74HC595<3> sr(dataPin, clockPin, latchPin);
+
+// Seven segment display digits
+const byte digits[10] = {
+  B00111111, // 0
+  B00000110, // 1
+  B01011011, // 2
+  B01001111, // 3
+  B01100110, // 4
+  B01101101, // 5
+  B01111101, // 6
+  B00000111, // 7
+  B01111111, // 8
+  B01101111  // 9
+};
+
+int timer = 0;
+
+int currentDisplay[3] = {0, 0, 0}; // Stores current values of the 7-segment displays
+int currentSegment = 0;            // Currently selected segment in setting mode
+bool settingMode = false;          // Indicates if setting mode is active
+bool runningMode = false;          // Indicates if running mode is active
+unsigned long lastButtonPressTime = 0;  // Time of the last button press
 
 void setup() {
-  //set pins to output so you can control the shift register
-  pinMode(latchPin, OUTPUT);
-  pinMode(clockPin, OUTPUT);
-  pinMode(dataPin, OUTPUT);
+  pinMode(setButtonPin, INPUT_PULLUP);
+  pinMode(upButtonPin, INPUT_PULLUP);
+  pinMode(downButtonPin, INPUT_PULLUP);
+  
+  Serial.begin(9600);
+  displayNumber();
 }
 
-void loop() 
-{
-    // Decimal 63      Binary output  01111111     Displays 0
-    digitalWrite(latchPin, LOW);
-    shiftOut(dataPin, clockPin, MSBFIRST, 63);  
-    digitalWrite(latchPin, HIGH);
-    delay(1000);
+void loop() {
+  //read set button
+  if (digitalRead(setButtonPin) == LOW) {
+    delay(50); // Debounce delay
+    if (digitalRead(setButtonPin) == LOW && millis() - lastButtonPressTime > 2000) {
+      // Serial.print(currentDisplay[0]);
+      lastButtonPressTime = millis();
+      Serial.print(lastButtonPressTime);
+      if (!settingMode) {
+        settingMode = true;
+        Serial.println("Entered setting mode");
+        Serial.print("Now setting segment..");
+        Serial.println(currentSegment);
+      } else {
+        currentSegment++;
+                Serial.print("Now setting segment..");
+        Serial.println(currentSegment);
+        if (currentSegment >= 3) {
+          currentSegment = 0; //Reset segment counter
+          settingMode = false;
+          Serial.print("Exiting setting mode. Current display: ");
+          Serial.print(currentDisplay[0]);
+          Serial.print(currentDisplay[1]);
+          Serial.println(currentDisplay[2]);
+          displayNumber();
+          // timer = currentDisplay[0]+currentDisplay[1]+currentDisplay[2];
+          String timer_str = String(currentDisplay[0]) + String(currentDisplay[1]) + String(currentDisplay[2]);
+          timer = timer_str.toInt();
+          Serial.print("Timer Counter : ");
+          Serial.println(timer);
+        }
+      }
+    }
+  } else if (digitalRead(runButtonPin) == LOW) { //read run button
+    delay(50); // Debounce delay
+    if (digitalRead(runButtonPin) == LOW && millis() - lastButtonPressTime > 2000) {
+      if (!runningMode) {
+        runningMode = true;
+        Serial.println("Entered running mode");
+        heating();
+      }
 
-    // Decimal 6      Binary output  00000110     Displays 1
-    digitalWrite(latchPin, LOW);
-    shiftOut(dataPin, clockPin, MSBFIRST, 6);  
-    digitalWrite(latchPin, HIGH);
-    delay(1000);
-  
-    // Decimal 91      Binary output  01011011     Displays 2
-    digitalWrite(latchPin, LOW);
-    shiftOut(dataPin, clockPin, MSBFIRST, 91);  
-    digitalWrite(latchPin, HIGH);
-    delay(1000);
+    }
+  }
+  // if(digitalRead(runButtonPin) == HIGH){
+  //   if (!runningMode) {
+  //       runningMode = true;
+  //       Serial.println("Entered running mode");
+  //       heating();
+  //     }
+  // }
 
-    // Decimal 79      Binary output  01001111     Displays 3  
-    digitalWrite(latchPin, LOW);
-    shiftOut(dataPin, clockPin, MSBFIRST, 79);  
-    digitalWrite(latchPin, HIGH);
-    delay(1000);
-  
-    // Decimal 102      Binary output  01101010     Displays 4  
-    digitalWrite(latchPin, LOW);
-    shiftOut(dataPin, clockPin, MSBFIRST, 102);  
-    digitalWrite(latchPin, HIGH);
-    delay(1000);
-  
-    // Decimal 109      Binary output  01101101     Displays 5  
-    digitalWrite(latchPin, LOW);
-    shiftOut(dataPin, clockPin, MSBFIRST, 109);  
-    digitalWrite(latchPin, HIGH);
-    delay(1000);
+  if (settingMode) {
+    handleSettingMode();
+  } else {
+    displayNumber();
+  }
 
-    // Decimal  125      Binary output  01111101     Displays 6  
-    digitalWrite(latchPin, LOW);
-    shiftOut(dataPin, clockPin, MSBFIRST, 125);  
-    digitalWrite(latchPin, HIGH);
-    delay(1000);
-
-    // Decimal  7      Binary output  00000111     Displays 7     
-    digitalWrite(latchPin, LOW);
-    shiftOut(dataPin, clockPin, MSBFIRST, 7);  
-    digitalWrite(latchPin, HIGH);
-    delay(1000);
-    
-    // Decimal 127      Binary  output  01111111     Displays 8    
-    digitalWrite(latchPin, LOW);
-    shiftOut(dataPin, clockPin, MSBFIRST, 127);  
-    digitalWrite(latchPin, HIGH);
-    delay(1000);
-
-    // Decimal 102      Binary output  01101111     Displays 9      
-    digitalWrite(latchPin, LOW);
-    shiftOut(dataPin, clockPin, MSBFIRST, 111);  
-    digitalWrite(latchPin, HIGH);
-    delay(1000);
-    
 }
+
+void handleSettingMode() {
+  static bool blinkState = true;
+  static unsigned long lastBlinkTime = 0;
+
+  if (millis() - lastBlinkTime > 500) {
+    blinkState = !blinkState;
+    lastBlinkTime = millis();
+  }
+
+  if (blinkState) {
+    displaySegment(currentSegment, digits[currentDisplay[currentSegment]]);
+  } else {
+    displaySegment(currentSegment, 0);
+  }
+
+  if (digitalRead(upButtonPin) == LOW) {
+    delay(50); // Debounce delay
+    if (digitalRead(upButtonPin) == LOW) {
+      currentDisplay[currentSegment]++;
+      if (currentDisplay[currentSegment] > 9) {
+        currentDisplay[currentSegment] = 0;
+      }
+      displaySegment(currentSegment, digits[currentDisplay[currentSegment]]);
+      Serial.println(currentDisplay[currentSegment]);
+      delay(200); // Button press delay
+    }
+  }
+
+  if (digitalRead(downButtonPin) == LOW) {
+    delay(50); // Debounce delay
+    if (digitalRead(downButtonPin) == LOW) {
+      currentDisplay[currentSegment]--;
+      if (currentDisplay[currentSegment] < 0) {
+        currentDisplay[currentSegment] = 9;
+      }
+      displaySegment(currentSegment, digits[currentDisplay[currentSegment]]);
+      delay(200); // Button press delay
+      Serial.println(currentDisplay[currentSegment]);
+    }
+  }
+}
+
+void displayNumber() {
+  for (int i = 0; i < 3; i++) {
+    displaySegment(i, digits[currentDisplay[i]]);
+  }
+}
+
+void displaySegment(int segment, byte value) {
+  sr.set(segment, value);
+}
+
+void heating(){
+  //reading temp
+  //timer countdown
+  if(timer != 0){
+  Serial.print("Timer remaining..");
+  Serial.println(timer);
+  timer--;
+  } else{
+    runningMode = false;
+    Serial.print("Exiting running mode......");
+  }
+}
+
+  // If max_temp-10% < heater < max_temp+10%
+  //heater on
+
+  // If heater reach max_temp+10%, turnof heater
+
+  // If timer = 0
+  // heater off
+  // !heating
+// }
