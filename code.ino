@@ -1,4 +1,6 @@
 #include <ShiftRegister74HC595.h>
+#include "MAX31855.h"
+#include <SPI.h>
 
 // What works?
 // Setting timer bisa. Naik turun bisa.
@@ -23,6 +25,14 @@ const int setButtonPin = 5;   // Set button
 const int upButtonPin = 6;    // Up button
 const int downButtonPin = 7;  // Down button
 const int runButtonPin = 8; // running button
+
+//Temp Sensor
+// SPI Bus 1 Init (Max 3 sensor di 1 bus)
+int CLK = 18;
+int SO = 19;
+int CS1 = 5;
+MAX31855 temp_sensor1(CS1, SO, CLK);
+char temp1[50]
 
 // Create shift register object
 ShiftRegister74HC595<3> sr(dataPin, clockPin, latchPin);
@@ -50,6 +60,7 @@ bool runningMode = false;          // Indicates if running mode is active
 unsigned long lastButtonPressTime = 0;  // Time of the last button press
 
 void setup() {
+  temp_sensor1.begin();
   pinMode(setButtonPin, INPUT_PULLUP);
   pinMode(upButtonPin, INPUT_PULLUP);
   pinMode(downButtonPin, INPUT_PULLUP);
@@ -59,6 +70,15 @@ void setup() {
 }
 
 void loop() {
+  //Temp. UNTESTED!
+  long now = millis();
+  if (now - lastMsg > 5000) {
+    lastMsg = now;
+    int status1 = temp_sensor1.read();
+    float temperature1 = temp_sensor1.getTemperature();
+    Serial.println("Temperature 1 ONLY = ... ");
+    Serial.print(temperature1);
+  }
   //read set button
   if (digitalRead(setButtonPin) == LOW) {
     delay(50); // Debounce delay
