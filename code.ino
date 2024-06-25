@@ -9,13 +9,13 @@
 // Running mode masih belum work. Tweek this
 // Belum show timer di seven segment
 
-// - Show timer di seven segment
+// - Show timer di seven segment. INPROGRESS
 // - Masuk ke setup mode. Done.
 // - Control timer updown. Done
 // - Exit setup. Done.
-// - Masuk running mode
-// - Exit running mode
-// - Read temp. UNTESTED.
+// - Masuk running mode. HOLD
+// - Exit running mode. HOLD.
+// - Read temp. DONE>>UNTESTED.
 
 // Pin definitions
 const int dataPin = 2;   // DS pin of 74HC595
