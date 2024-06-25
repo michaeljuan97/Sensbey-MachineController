@@ -15,6 +15,7 @@
 // - Exit setup. Done.
 // - Masuk running mode
 // - Exit running mode
+// - Read temp. UNTESTED.
 
 // Pin definitions
 const int dataPin = 2;   // DS pin of 74HC595
